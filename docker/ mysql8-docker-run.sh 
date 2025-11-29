@@ -1,0 +1,14 @@
+#!/bin/bash
+# 启动MySQL8容器，初始化root密码为123456
+# 需要先拉取mysql:8镜像
+# 使用方法：bash mysql8-docker-run.sh
+sudo chmod 777 /var/lib/mysql
+
+docker run -d \
+  --name mysql8 \
+  --userns=keep-id \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  -p 3306:3306 \
+  -v $(pwd)/mysql-data:/var/lib/mysql \
+  mysql:8
+
