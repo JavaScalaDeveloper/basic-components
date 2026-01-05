@@ -21,3 +21,9 @@ CREATE TABLE mysql_instance_info
     INDEX idx_name (name)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='MySQL实例表';
+
+
+ALTER TABLE mysql_instance_info
+    ADD COLUMN related_test_instance_host VARCHAR(255) COMMENT '关联测试实例host' AFTER env,
+    ADD COLUMN related_pre_instance_host VARCHAR(255) COMMENT '关联预发实例host' AFTER related_test_instance_host,
+    ADD COLUMN related_prd_instance_host VARCHAR(255) COMMENT '关联生产实例host' AFTER related_pre_instance_host;
