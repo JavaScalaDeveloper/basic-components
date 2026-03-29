@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # MySQL 8.0
+  mysql:
+    image: docker.m.daocloud.io/mysql:8.0
+    container_name: mysql8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  # Redis 7.2.5
+  redis:
+    image: docker.m.daocloud.io/redis:7.2.5
+    container_name: redis7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - app-network
+    command: redis-server /usr/local/etc/redis/redis.conf --appendonly yes
+
+  # RocketMQ NameServer
+  rocketmq-namesrv:
+    image: docker.m.daocloud.io/apache/rocketmq:5.1.4
+    container_name: rocketmq-namesrv
+    restart: unless-stopped
+    ports:
+      - "9876:9876"
+    volumes:
+      - ./rocketmq/namesrv/logs:/home/rocketmq/logs
+    networks:
+      - app-network
+    command: sh mqnamesrv
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: docker.m.daocloud.io/apache/rocketmq:5.1.4
+    container_name: rocketmq-broker
+    restart: unless-stopped
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+      - "10912:10912"
+    volumes:
+      - ./rocketmq/broker/logs:/home/rocketmq/logs
+      - ./rocketmq/broker/store:/home/rocketmq/store
+      - ./rocketmq/broker/conf/broker.conf:/home/rocketmq/conf/broker.conf
+    networks:
+      - app-network
+    environment:
+      - NAMESRV_ADDR=rocketmq-namesrv:9876
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf autoCreateTopicEnable=true
+    depends_on:
+      - rocketmq-namesrv
+
+  # ClickHouse
+  clickhouse:
+    image: docker.m.daocloud.io/clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"  # HTTP 接口
+      - "9000:9000"  # 原生协议端口
+      - "9009:9009"  # 内部通信端口
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./clickhouse/config/config.xml:/etc/clickhouse-server/config.d/config.xml
+    networks:
+      - app-network
+    environment:
+      CLICKHOUSE_DB: app_analytics
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: 123456
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+
+# 创建共享网络
+networks:
+  app-network:
+    driver: bridge
+    name: app-network
+
+# 数据卷持久化
+volumes:
+  mysql_data:
+  redis_data:
+  clickhouse_data:
+  clickhouse_logs:
