@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MySQL 8.0
   mysql:
@@ -38,7 +36,7 @@ services:
 
   # RocketMQ NameServer
   rocketmq-namesrv:
-    image: docker.m.daocloud.io/apache/rocketmq:5.1.4
+    image: docker.m.daocloud.io/apache/rocketmq:4.9.7
     container_name: rocketmq-namesrv
     restart: unless-stopped
     ports:
@@ -51,7 +49,7 @@ services:
 
   # RocketMQ Broker
   rocketmq-broker:
-    image: docker.m.daocloud.io/apache/rocketmq:5.1.4
+    image: docker.m.daocloud.io/apache/rocketmq:4.9.7
     container_name: rocketmq-broker
     restart: unless-stopped
     ports:
@@ -61,12 +59,12 @@ services:
     volumes:
       - ./rocketmq/broker/logs:/home/rocketmq/logs
       - ./rocketmq/broker/store:/home/rocketmq/store
-      - ./rocketmq/broker/conf/broker.conf:/home/rocketmq/conf/broker.conf
+      - ./rocketmq/broker/conf:/home/rocketmq/conf
     networks:
       - app-network
     environment:
       - NAMESRV_ADDR=rocketmq-namesrv:9876
-    command: sh mqbroker -c /home/rocketmq/conf/broker.conf autoCreateTopicEnable=true
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf -p "autoCreateTopicEnable=true"
     depends_on:
       - rocketmq-namesrv
 
@@ -91,6 +89,25 @@ services:
       CLICKHOUSE_PASSWORD: 123456
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
 
+  # RabbitMQ (AMQP + Management UI)
+  rabbitmq:
+    image: docker.m.daocloud.io/rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+#    AMQP 地址：amqp://admin:123456@localhost:5672/
+#    管理界面：http://localhost:15672（账号 admin / 密码 123456）
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: 123456
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+
 # 创建共享网络
 networks:
   app-network:
@@ -103,3 +120,4 @@ volumes:
   redis_data:
   clickhouse_data:
   clickhouse_logs:
+  rabbitmq_data:
