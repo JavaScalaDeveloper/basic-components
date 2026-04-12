@@ -55,3 +55,10 @@ create index idx_modify_time on db_asset_mysql_table_info (modify_time);
 
 # truncate db_asset_mysql_database_info;
 # truncate db_asset_mysql_table_info;
+
+
+ALTER TABLE db_asset_mysql_table_info
+    MODIFY COLUMN manual_sensitive VARCHAR(32) NULL COMMENT '人工打标：IGNORE/FALSE_POSITIVE/SENSITIVE';
+
+ALTER TABLE db_asset_mysql_database_info
+    MODIFY COLUMN manual_sensitive VARCHAR(32) NULL COMMENT '人工打标：IGNORE/FALSE_POSITIVE/SENSITIVE';

@@ -108,6 +108,32 @@ services:
     networks:
       - app-network
 
+  # Ollama (本地大模型服务)
+#  docker-compose up -d ollama
+#  docker exec -it ollama bash
+#  ollama run qwen3.5:0.8b --think=false --num-thread 8
+  ollama:
+    image: docker.m.daocloud.io/ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"  # Ollama API 端口
+    volumes:
+      - ollama_data:/root/.ollama  # 模型文件持久化
+    networks:
+      - app-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_ORIGINS=*
+    # 如需使用 GPU，取消下面注释（需要安装 nvidia-docker2）
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
 # 创建共享网络
 networks:
   app-network:
@@ -121,3 +147,4 @@ volumes:
   clickhouse_data:
   clickhouse_logs:
   rabbitmq_data:
+  ollama_data:
