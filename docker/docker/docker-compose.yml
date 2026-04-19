@@ -1,5 +1,6 @@
 services:
   # MySQL 8.0
+#  docker compose restart mysql
   mysql:
     image: docker.m.daocloud.io/mysql:8.0
     container_name: mysql8

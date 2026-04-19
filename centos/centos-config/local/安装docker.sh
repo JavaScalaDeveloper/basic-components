@@ -34,24 +34,40 @@ fi
 echo "✓ 依赖包安装完成"
 echo ""
 
-# 3. 添加 Docker 官方仓库
-echo "[步骤 3/7] 添加 Docker 官方仓库..."
-dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+# 3. 添加 Docker 仓库（使用国内镜像源）
+echo "[步骤 3/7] 添加 Docker 仓库..."
+
+# 尝试使用阿里云镜像源
+echo "尝试使用阿里云镜像源..."
+dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 if [ $? -ne 0 ]; then
-    echo "错误: 添加 Docker 仓库失败"
-    exit 1
+    echo "阿里云镜像源失败，尝试官方源..."
+    dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    if [ $? -ne 0 ]; then
+        echo "错误: 添加 Docker 仓库失败"
+        exit 1
+    fi
 fi
 echo "✓ Docker 仓库已添加"
 echo ""
 
 # 4. 安装 Docker CE
 echo "[步骤 4/7] 安装 Docker CE..."
-dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# 先尝试安装（跳过失败的包）
+dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin 2>&1
 if [ $? -ne 0 ]; then
-    echo "错误: Docker 安装失败"
-    exit 1
+    echo "部分包安装失败，尝试不安装 buildx 插件..."
+    # 如果失败，尝试不安装 buildx 和 scan 插件
+    dnf install -y docker-ce docker-ce-cli containerd.io
+    if [ $? -ne 0 ]; then
+        echo "错误: Docker 安装失败"
+        exit 1
+    fi
+    echo "✓ Docker CE 安装完成（不含 buildx/scan 插件）"
+else
+    echo "✓ Docker CE 安装完成"
 fi
-echo "✓ Docker CE 安装完成"
 echo ""
 
 # 5. 配置国内镜像源
@@ -147,3 +163,22 @@ echo "       当前镜像源配置:"
 echo "=========================================="
 docker info | grep -A 5 "Registry Mirrors"
 echo ""
+
+
+#安装docker-compose
+
+# 1. 检查 Docker 是否已安装
+docker --version
+
+# 2. Docker Compose V2 通常随 Docker Engine 一起安装，如果没有，可以手动安装
+# 设置插件目录
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+
+# 3. 下载 Docker Compose V2
+sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+
+# 4. 赋予执行权限
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# 5. 验证安装
+docker compose version

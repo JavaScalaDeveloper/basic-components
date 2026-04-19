@@ -16,3 +16,10 @@ fi
 echo "=========================================="
 echo "      MySQL 8 手动安装命令"
 echo "=========================================="
+
+
+#改密码
+docker exec -it <你的容器名或ID> bash
+mysql -u admin -p
+ALTER USER 'admin'@'%' IDENTIFIED BY '59de91a6479c434abc13354e225b8fa6';
+FLUSH PRIVILEGES;
