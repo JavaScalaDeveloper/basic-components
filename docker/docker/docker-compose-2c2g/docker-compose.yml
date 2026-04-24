@@ -7,7 +7,7 @@ services:
     container_name: mysql8
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_ROOT_PASSWORD: 59de91a6479c434abc13354e225b8fa6
       MYSQL_DATABASE: app_db
       MYSQL_USER: admin
       MYSQL_PASSWORD: 59de91a6479c434abc13354e225b8fa6
@@ -21,6 +21,52 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+
+  # Ollama (本地大模型服务)
+#  docker compose up -d ollama
+#  docker exec -it ollama bash
+#  docker exec -it ollama ollama run qwen3.5:0.8b --think=false
+#  ollama run qwen3.5:0.8b --think=false
+  ollama:
+    image: docker.m.daocloud.io/ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"  # Ollama API 端口
+    volumes:
+      - ollama_data:/root/.ollama  # 模型文件持久化
+    networks:
+      - app-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_ORIGINS=*
+
+#  docker compose up -d openclaw
+  # Openclaw (Gateway / Control UI)
+  # 访问：http://localhost:18789
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    restart: unless-stopped
+    ports:
+      - "18789:18789" # WebSocket + HTTP / Control UI
+      - "18790:18790" # 可选：Bridge（按需开启）
+    extra_hosts:
+      # 让容器内可以用 host.docker.internal 访问宿主机（Linux 需要 host-gateway）
+      - "host.docker.internal:host-gateway"
+    environment:
+      # 首次建议设置一个随机 token；也可改用 env_file 引入
+      # - OPENCLAW_GATEWAY_TOKEN=change-me
+      - TZ=Asia/Shanghai
+      # Openclaw 使用宿主机上的 Ollama（本机 LLM）
+      # 仅本地 Ollama 时，apiKey 用占位符即可（Openclaw 仍要求存在/用于可用性检查）
+      - OLLAMA_API_KEY=ollama-local
+    volumes:
+      - openclaw_workspace:/home/node/.openclaw/workspace
+      # 挂载整个配置目录（而不是单文件），否则 openclaw 启动时原子 rename 会报 EBUSY
+      - ./openclaw:/home/node/.openclaw:Z
+    networks:
+      - app-network
 
 # 创建共享网络
 networks:
@@ -36,3 +82,4 @@ volumes:
   clickhouse_logs:
   rabbitmq_data:
   ollama_data:
+  openclaw_workspace:
